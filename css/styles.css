@@ -1,0 +1,29 @@
+body {
+    background-color: #f8f9fa;
+    padding: 20px 0;
+}
+
+.container {
+    max-width: 1200px;
+}
+
+textarea {
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.result-box {
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 15px;
+    min-height: 200px;
+    white-space: pre-wrap;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.separator {
+    border-top: 3px dashed #0d6efd;
+    margin: 20px 0;
+}
