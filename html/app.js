@@ -6,7 +6,7 @@ function sendToGoogleSheets(products) {
     const scriptUrl = SCRIPT_URL;
 
     if (!scriptUrl) {
-        alert('⚠️ URL do Apps Script não configurada!');
+        alert('A URL do Google Apps Script não foi configurada.');
         return;
     }
 
@@ -62,7 +62,7 @@ document.getElementById('extractBtn').addEventListener('click', function () {
     const productCount = document.getElementById('productCount');
 
     if (!inputText.trim()) {
-        resultDiv.innerHTML = '<span class="text-danger">⚠️ Por favor, cole o texto primeiro!</span>';
+        resultDiv.innerHTML = '<span class="text-danger">Por favor, colo o texto primeiro!</span>';
         copyVerticalBtn.style.display = 'none';
         sendToSheetBtn.style.display = 'none';
         productCount.style.display = 'none';
@@ -74,7 +74,7 @@ document.getElementById('extractBtn').addEventListener('click', function () {
     const matches = [...inputText.matchAll(productPattern)];
 
     if (matches.length === 0) {
-        resultDiv.innerHTML = '<span class="text-danger">⚠️ Não foi possível identificar produtos no texto. Certifique-se de que cada produto começa com "1/2", "1/4", etc.</span>';
+        resultDiv.innerHTML = '<span class="text-danger"> Não foi possivel capturar nenhum produto. Certifique-se de que cada produto começa com "1/2", "1/4", etc.</span>';
         copyVerticalBtn.style.display = 'none';
         sendToSheetBtn.style.display = 'none';
         productCount.style.display = 'none';
@@ -83,6 +83,7 @@ document.getElementById('extractBtn').addEventListener('click', function () {
 
     // Divide em blocos de produtos
     const products = [];
+    const seenProducts = new Set();
     for (let i = 0; i < matches.length; i++) {
         const startIndex = matches[i].index;
         const endIndex = i < matches.length - 1 ? matches[i + 1].index : inputText.length;
@@ -102,7 +103,20 @@ document.getElementById('extractBtn').addEventListener('click', function () {
             .replace(/\n{3,}/g, '\n\n') // Remove linhas em branco extras
             .trim();
 
-        products.push(productText);
+        const skuMatch = productText.match(/^SKU:\s*(.+)$/m);
+        const sellerMatch = productText.match(/^Seller:\s*(.+)$/m);
+        const titleLine = productText.split('\n').find(line => line.trim());
+
+        const sku = skuMatch ? skuMatch[1].trim() : '';
+        const seller = sellerMatch ? sellerMatch[1].trim() : '';
+        const title = titleLine ? titleLine.trim() : '';
+
+        const productKey = sku ? `sku:${sku}` : `${title}||${seller}`;
+
+        if (!seenProducts.has(productKey)) {
+            seenProducts.add(productKey);
+            products.push(productText);
+        }
     }
 
     // Mostra todos os produtos separados
