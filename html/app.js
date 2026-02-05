@@ -84,6 +84,7 @@ document.getElementById('extractBtn').addEventListener('click', function () {
     // Divide em blocos de produtos
     const products = [];
     const seenProducts = new Set();
+    let pendingTitle = '';
     for (let i = 0; i < matches.length; i++) {
         const startIndex = matches[i].index;
         const endIndex = i < matches.length - 1 ? matches[i + 1].index : inputText.length;
@@ -105,11 +106,26 @@ document.getElementById('extractBtn').addEventListener('click', function () {
 
         const skuMatch = productText.match(/^SKU:\s*(.+)$/m);
         const sellerMatch = productText.match(/^Seller:\s*(.+)$/m);
-        const titleLine = productText.split('\n').find(line => line.trim());
+        const lines = productText.split('\n').map(line => line.trim()).filter(Boolean);
+        const titleLine = lines[0] || '';
 
         const sku = skuMatch ? skuMatch[1].trim() : '';
         const seller = sellerMatch ? sellerMatch[1].trim() : '';
         const title = titleLine ? titleLine.trim() : '';
+
+        const hasSku = Boolean(sku);
+        const hasSeller = Boolean(seller);
+
+        // Fragmento de título isolado (sem SKU/Seller) vindo do carrossel
+        if (!hasSku && !hasSeller && lines.length <= 3) {
+            pendingTitle = title;
+            continue;
+        }
+
+        if (pendingTitle && !productText.startsWith(pendingTitle)) {
+            productText = `${pendingTitle}\n${productText}`.trim();
+            pendingTitle = '';
+        }
 
         const productKey = sku ? `sku:${sku}` : `${title}||${seller}`;
 
