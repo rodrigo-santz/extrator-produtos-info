@@ -1,8 +1,8 @@
 // ⚙️ CONFIGURAÇÃO: Altere a URL aqui se necessário
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby88bI3x58Qv92dGU0q3NVNu564jTFzYGs1psuLaS-4qHiwSsJ1pyGuo4mcFO2JHTbP/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxABs1c7XLlDW0Gi_sqsVkd0EcpK5o9hGuym6EJJppmiUK6eDHJb1f_iHFkYKrpJoGA/exec';
 
 // Enviar para Google Sheets
-function sendToGoogleSheets(products) {
+function sendToGoogleSheets(products, destination = 'approved') {
     const scriptUrl = SCRIPT_URL;
 
     if (!scriptUrl) {
@@ -10,14 +10,28 @@ function sendToGoogleSheets(products) {
         return;
     }
 
-    document.getElementById('sendToSheetBtn').disabled = true;
-    document.getElementById('sendToSheetBtn').textContent = '⏳ Enviando...';
+    const isRejected = destination === 'rejected';
+    const buttonId = isRejected ? 'sendRejectedBtn' : 'sendToSheetBtn';
+    const sendingLabel = isRejected ? '⏳ Enviando reprovados...' : '⏳ Enviando...';
+    const successLabel = isRejected ? '✓ Reprovados enviados!' : '✓ Enviado!';
+    const defaultLabel = isRejected ? '🚫 ENVIAR reprovados' : '📊 Enviar para Sheets';
+    const defaultClass = isRejected ? 'btn-danger' : 'btn-warning';
+    const activeButton = document.getElementById(buttonId);
+
+    const approvedButton = document.getElementById('sendToSheetBtn');
+    const rejectedButton = document.getElementById('sendRejectedBtn');
+
+    approvedButton.disabled = true;
+    rejectedButton.disabled = true;
+
+    activeButton.textContent = sendingLabel;
 
     // Prepara os dados como FormData para evitar preflight CORS
     const formData = new FormData();
     formData.append('data', JSON.stringify({
         products: products,
-        timestamp: new Date().toLocaleString('pt-BR')
+        timestamp: new Date().toLocaleString('pt-BR'),
+        destination: destination
     }));
 
     console.log('Enviando para:', scriptUrl);
@@ -29,27 +43,29 @@ function sendToGoogleSheets(products) {
     })
         .then(response => {
             console.log('Resposta recebida:', response.status);
-            document.getElementById('sendToSheetBtn').textContent = '✓ Enviado!';
-            document.getElementById('sendToSheetBtn').classList.remove('btn-warning');
-            document.getElementById('sendToSheetBtn').classList.add('btn-success');
+            activeButton.textContent = successLabel;
+            activeButton.classList.remove(defaultClass);
+            activeButton.classList.add('btn-success');
             setTimeout(() => {
-                document.getElementById('sendToSheetBtn').textContent = '📊 Enviar para Sheets';
-                document.getElementById('sendToSheetBtn').classList.remove('btn-success');
-                document.getElementById('sendToSheetBtn').classList.add('btn-warning');
-                document.getElementById('sendToSheetBtn').disabled = false;
+                activeButton.textContent = defaultLabel;
+                activeButton.classList.remove('btn-success');
+                activeButton.classList.add(defaultClass);
+                approvedButton.disabled = false;
+                rejectedButton.disabled = false;
             }, 3000);
         })
         .catch(err => {
             console.error('Erro:', err.message);
             // Trata como sucesso de qualquer forma
-            document.getElementById('sendToSheetBtn').textContent = '✓ Enviado!';
-            document.getElementById('sendToSheetBtn').classList.remove('btn-warning');
-            document.getElementById('sendToSheetBtn').classList.add('btn-success');
+            activeButton.textContent = successLabel;
+            activeButton.classList.remove(defaultClass);
+            activeButton.classList.add('btn-success');
             setTimeout(() => {
-                document.getElementById('sendToSheetBtn').textContent = '📊 Enviar para Sheets';
-                document.getElementById('sendToSheetBtn').classList.remove('btn-success');
-                document.getElementById('sendToSheetBtn').classList.add('btn-warning');
-                document.getElementById('sendToSheetBtn').disabled = false;
+                activeButton.textContent = defaultLabel;
+                activeButton.classList.remove('btn-success');
+                activeButton.classList.add(defaultClass);
+                approvedButton.disabled = false;
+                rejectedButton.disabled = false;
             }, 3000);
         });
 }
@@ -59,12 +75,14 @@ document.getElementById('extractBtn').addEventListener('click', function () {
     const resultDiv = document.getElementById('result');
     const copyVerticalBtn = document.getElementById('copyVerticalBtn');
     const sendToSheetBtn = document.getElementById('sendToSheetBtn');
+    const sendRejectedBtn = document.getElementById('sendRejectedBtn');
     const productCount = document.getElementById('productCount');
 
     if (!inputText.trim()) {
         resultDiv.innerHTML = '<span class="text-danger">Por favor, colo o texto primeiro!</span>';
         copyVerticalBtn.style.display = 'none';
         sendToSheetBtn.style.display = 'none';
+        sendRejectedBtn.style.display = 'none';
         productCount.style.display = 'none';
         return;
     }
@@ -77,6 +95,7 @@ document.getElementById('extractBtn').addEventListener('click', function () {
         resultDiv.innerHTML = '<span class="text-danger"> Não foi possivel capturar nenhum produto. Certifique-se de que cada produto começa com "1/2", "1/4", etc.</span>';
         copyVerticalBtn.style.display = 'none';
         sendToSheetBtn.style.display = 'none';
+        sendRejectedBtn.style.display = 'none';
         productCount.style.display = 'none';
         return;
     }
@@ -84,7 +103,6 @@ document.getElementById('extractBtn').addEventListener('click', function () {
     // Divide em blocos de produtos
     const products = [];
     const seenProducts = new Set();
-    let pendingTitle = '';
     for (let i = 0; i < matches.length; i++) {
         const startIndex = matches[i].index;
         const endIndex = i < matches.length - 1 ? matches[i + 1].index : inputText.length;
@@ -106,26 +124,11 @@ document.getElementById('extractBtn').addEventListener('click', function () {
 
         const skuMatch = productText.match(/^SKU:\s*(.+)$/m);
         const sellerMatch = productText.match(/^Seller:\s*(.+)$/m);
-        const lines = productText.split('\n').map(line => line.trim()).filter(Boolean);
-        const titleLine = lines[0] || '';
+        const titleLine = productText.split('\n').find(line => line.trim());
 
         const sku = skuMatch ? skuMatch[1].trim() : '';
         const seller = sellerMatch ? sellerMatch[1].trim() : '';
         const title = titleLine ? titleLine.trim() : '';
-
-        const hasSku = Boolean(sku);
-        const hasSeller = Boolean(seller);
-
-        // Fragmento de título isolado (sem SKU/Seller) vindo do carrossel
-        if (!hasSku && !hasSeller && lines.length <= 3) {
-            pendingTitle = title;
-            continue;
-        }
-
-        if (pendingTitle && !productText.startsWith(pendingTitle)) {
-            productText = `${pendingTitle}\n${productText}`.trim();
-            pendingTitle = '';
-        }
 
         const productKey = sku ? `sku:${sku}` : `${title}||${seller}`;
 
@@ -144,6 +147,7 @@ document.getElementById('extractBtn').addEventListener('click', function () {
     resultDiv.classList.remove('text-muted');
     copyVerticalBtn.style.display = 'inline-block';
     sendToSheetBtn.style.display = 'inline-block';
+    sendRejectedBtn.style.display = 'inline-block';
     productCount.style.display = 'inline-block';
     productCount.textContent = `${products.length} produto${products.length !== 1 ? 's' : ''}`;
 
@@ -167,6 +171,11 @@ document.getElementById('extractBtn').addEventListener('click', function () {
 
     // Enviar para Google Sheets
     sendToSheetBtn.onclick = function () {
-        sendToGoogleSheets(products);
+        sendToGoogleSheets(products, 'approved');
+    };
+
+    // Enviar reprovados para Google Sheets (coluna A)
+    sendRejectedBtn.onclick = function () {
+        sendToGoogleSheets(products, 'rejected');
     };
 });
