@@ -1,5 +1,44 @@
 // ⚙️ CONFIGURAÇÃO: Altere a URL aqui se necessário
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyhaAgie-v1KbfAKE8fIgX4SWMe2tvO58Ejp0lyVn7PsfhtCQKKshYLi1Yg5-GvDjrN/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw3SkrnOK8m6-4gYdfrSyr8XR7RoRia8YsD6EOz1uPJvX9ID2Nt7P_UeLLNnsIn0Ua2/exec';
+
+function postToAppsScript(scriptUrl, payload) {
+    return new Promise((resolve, reject) => {
+        try {
+            const iframeId = 'appsScriptSubmitFrame';
+            let iframe = document.getElementById(iframeId);
+
+            if (!iframe) {
+                iframe = document.createElement('iframe');
+                iframe.id = iframeId;
+                iframe.name = iframeId;
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+            }
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = scriptUrl;
+            form.target = iframeId;
+            form.style.display = 'none';
+
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'data';
+            input.value = JSON.stringify(payload);
+            form.appendChild(input);
+
+            document.body.appendChild(form);
+            form.submit();
+
+            setTimeout(() => {
+                form.remove();
+                resolve();
+            }, 300);
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
 
 // Enviar para Google Sheets
 function sendToGoogleSheets(products, destination = 'approved') {
@@ -14,7 +53,7 @@ function sendToGoogleSheets(products, destination = 'approved') {
     const buttonId = isRejected ? 'sendRejectedBtn' : 'sendToSheetBtn';
     const sendingLabel = isRejected ? '⏳ Enviando reprovados...' : '⏳ Enviando...';
     const successLabel = isRejected ? '✓ Reprovados enviados!' : '✓ Enviado!';
-    const defaultLabel = isRejected ? '🚫 ENVIAR reprovados' : '📊 Enviar para Sheets';
+    const defaultLabel = isRejected ? '🚫 ENVIAR reprovados para Sheets' : '📊 Enviar para Sheets';
     const defaultClass = isRejected ? 'btn-danger' : 'btn-warning';
     const activeButton = document.getElementById(buttonId);
 
@@ -26,23 +65,17 @@ function sendToGoogleSheets(products, destination = 'approved') {
 
     activeButton.textContent = sendingLabel;
 
-    // Prepara os dados como FormData para evitar preflight CORS
-    const formData = new FormData();
-    formData.append('data', JSON.stringify({
+    const payload = {
         products: products,
         timestamp: new Date().toLocaleString('pt-BR'),
         destination: destination
-    }));
+    };
 
     console.log('Enviando para:', scriptUrl);
     console.log('Produtos:', products.length);
 
-    fetch(scriptUrl, {
-        method: 'POST',
-        body: formData
-    })
-        .then(response => {
-            console.log('Resposta recebida:', response.status);
+    postToAppsScript(scriptUrl, payload)
+        .then(() => {
             activeButton.textContent = successLabel;
             activeButton.classList.remove(defaultClass);
             activeButton.classList.add('btn-success');
@@ -55,14 +88,19 @@ function sendToGoogleSheets(products, destination = 'approved') {
             }, 3000);
         })
         .catch(err => {
-            console.error('Erro:', err.message);
-            // Trata como sucesso de qualquer forma
-            activeButton.textContent = successLabel;
-            activeButton.classList.remove(defaultClass);
-            activeButton.classList.add('btn-success');
+            console.error('Erro no envio:', err.message);
+            activeButton.textContent = '❌ Falha no envio';
+            if (!isRejected) {
+                activeButton.classList.remove('btn-warning');
+                activeButton.classList.add('btn-danger');
+            }
+
+            alert(`Não foi possível enviar para o Sheets.\n\nDetalhe: ${err.message}`);
+
             setTimeout(() => {
                 activeButton.textContent = defaultLabel;
                 activeButton.classList.remove('btn-success');
+                activeButton.classList.remove('btn-danger');
                 activeButton.classList.add(defaultClass);
                 approvedButton.disabled = false;
                 rejectedButton.disabled = false;
