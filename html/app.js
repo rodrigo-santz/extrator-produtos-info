@@ -1,5 +1,5 @@
 // ⚙️ CONFIGURAÇÃO: Altere a URL aqui se necessário
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyUWdjDHTM5OZYARZAKKL2gDQxcCZgxO4UknaWNMAxNqImxtFMwSCWgPiH174RO5bCD/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz4Sj05M50kF8T3FrEfZ6f5XegfTANul3jvUI-n5iYFO1OhWPkzejhZKwM4urZ64n3u/exec';
 
 function postToAppsScript(scriptUrl, payload) {
     return new Promise((resolve, reject) => {
