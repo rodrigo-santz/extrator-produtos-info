@@ -1,5 +1,5 @@
 // ⚙️ CONFIGURAÇÃO: Altere a URL aqui se necessário
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxABs1c7XLlDW0Gi_sqsVkd0EcpK5o9hGuym6EJJppmiUK6eDHJb1f_iHFkYKrpJoGA/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyhaAgie-v1KbfAKE8fIgX4SWMe2tvO58Ejp0lyVn7PsfhtCQKKshYLi1Yg5-GvDjrN/exec';
 
 // Enviar para Google Sheets
 function sendToGoogleSheets(products, destination = 'approved') {
