@@ -125,12 +125,31 @@ document.getElementById('extractBtn').addEventListener('click', function () {
         return;
     }
 
-    // Divide o texto em produtos usando o padrão "1/2" ou similar no início
-    const productPattern = /\d+\/\d+\s*\n/g;
-    const matches = [...inputText.matchAll(productPattern)];
+    const splitByMarkers = (text, markerRegex) => {
+        const matches = [...text.matchAll(markerRegex)];
+        const blocks = [];
 
-    if (matches.length === 0) {
-        resultDiv.innerHTML = '<span class="text-danger"> Não foi possivel capturar nenhum produto. Certifique-se de que cada produto começa com "1/2", "1/4", etc.</span>';
+        for (let i = 0; i < matches.length; i++) {
+            const startIndex = matches[i].index;
+            const endIndex = i < matches.length - 1 ? matches[i + 1].index : text.length;
+            blocks.push(text.substring(startIndex, endIndex).trim());
+        }
+
+        return blocks;
+    };
+
+    // Delimitador principal: cada card começa em "img-carousel"
+    const markerByCarousel = /^img-carousel\s*$/gm;
+    let rawProductBlocks = splitByMarkers(inputText, markerByCarousel);
+
+    // Fallback para textos antigos, caso não haja o marcador do carousel
+    if (rawProductBlocks.length === 0) {
+        const markerByPagination = /^\d+\/\d+\s*$/gm;
+        rawProductBlocks = splitByMarkers(inputText, markerByPagination);
+    }
+
+    if (rawProductBlocks.length === 0) {
+        resultDiv.innerHTML = '<span class="text-danger">Não foi possível capturar nenhum produto. Tente copiar novamente incluindo os blocos com "img-carousel".</span>';
         copyVerticalBtn.style.display = 'none';
         sendToSheetBtn.style.display = 'none';
         sendRejectedBtn.style.display = 'none';
@@ -138,27 +157,29 @@ document.getElementById('extractBtn').addEventListener('click', function () {
         return;
     }
 
-    // Divide em blocos de produtos
+    // Limpa blocos e remove duplicados
     const products = [];
     const seenProducts = new Set();
-    for (let i = 0; i < matches.length; i++) {
-        const startIndex = matches[i].index;
-        const endIndex = i < matches.length - 1 ? matches[i + 1].index : inputText.length;
-        let productText = inputText.substring(startIndex, endIndex).trim();
+    for (const block of rawProductBlocks) {
+        let productText = block;
 
         // Remove linhas indesejadas
         productText = productText
             .replace(/^\d+\/\d+\s*\n/gm, '') // Remove 1/2, 1/4, etc
-            .replace(/^img-carousel\s*\n/gm, '')
+            .replace(/^img-carousel\s*\n?/gm, '')
             .replace(/^Previous slide\s*\n/gm, '')
             .replace(/^Next slide\s*\n/gm, '')
             .replace(/^Pendente\s*$/gm, '')
             .replace(/^Variações\s*\n/gm, '')
             .replace(/^Nenhum atributo informado\s*$/gm, '')
             .replace(/^Mostrando de \d+ até \d+ de \d+\s*$/gm, '')
-            .replace(/^[«‹›»\d\s]+$/gm, '') // Remove linhas com símbolos de navegação
+            .replace(/^[«‹›»\d\s\/]+$/gm, '') // Remove linhas com símbolos de navegação/paginação
             .replace(/\n{3,}/g, '\n\n') // Remove linhas em branco extras
             .trim();
+
+        if (!productText) {
+            continue;
+        }
 
         const skuMatch = productText.match(/^SKU:\s*(.+)$/m);
         const sellerMatch = productText.match(/^Seller:\s*(.+)$/m);
@@ -174,6 +195,15 @@ document.getElementById('extractBtn').addEventListener('click', function () {
             seenProducts.add(productKey);
             products.push(productText);
         }
+    }
+
+    if (products.length === 0) {
+        resultDiv.innerHTML = '<span class="text-danger">Nenhum produto válido foi encontrado após a limpeza do texto.</span>';
+        copyVerticalBtn.style.display = 'none';
+        sendToSheetBtn.style.display = 'none';
+        sendRejectedBtn.style.display = 'none';
+        productCount.style.display = 'none';
+        return;
     }
 
     // Mostra todos os produtos separados
