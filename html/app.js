@@ -17,6 +17,7 @@ function postToAppsScript(scriptUrl, payload) {
 
             const form = document.createElement('form');
             form.method = 'POST';
+            
             form.action = scriptUrl;
             form.target = iframeId;
             form.style.display = 'none';
@@ -79,6 +80,28 @@ function sendToGoogleSheets(products, destination = 'approved') {
             activeButton.textContent = successLabel;
             activeButton.classList.remove(defaultClass);
             activeButton.classList.add('btn-success');
+            // Limpa o campo de input e a área de resultados após envio bem-sucedido
+            try {
+                const inputTextEl = document.getElementById('inputText');
+                const resultDivEl = document.getElementById('result');
+                const copyVerticalBtnEl = document.getElementById('copyVerticalBtn');
+                const sendToSheetBtnEl = document.getElementById('sendToSheetBtn');
+                const sendRejectedBtnEl = document.getElementById('sendRejectedBtn');
+                const productCountEl = document.getElementById('productCount');
+
+                if (inputTextEl) inputTextEl.value = '';
+                if (resultDivEl) {
+                    resultDivEl.textContent = 'Os produtos aparecerão aqui após processar...';
+                    resultDivEl.classList.add('text-muted');
+                }
+                if (copyVerticalBtnEl) copyVerticalBtnEl.style.display = 'none';
+                if (sendToSheetBtnEl) sendToSheetBtnEl.style.display = 'none';
+                if (sendRejectedBtnEl) sendRejectedBtnEl.style.display = 'none';
+                if (productCountEl) productCountEl.style.display = 'none';
+            } catch (e) {
+                console.warn('Não foi possível limpar a UI após envio:', e.message);
+            }
+
             setTimeout(() => {
                 activeButton.textContent = defaultLabel;
                 activeButton.classList.remove('btn-success');
