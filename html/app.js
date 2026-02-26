@@ -337,13 +337,23 @@ document.getElementById('extractBtn').addEventListener('click', function () {
     resultDiv.classList.remove('text-muted');
     copyVerticalBtn.style.display = 'inline-block';
 
-    // Se houver produtos excluídos, mostra apenas botão de reprovados
+    // Se houver produtos excluídos, mostra botões para reprovar/enviar excluídos
     if (totalExcluded > 0) {
         const sendExcludedToSheetBtnLocal = document.getElementById('sendExcludedToSheetBtn');
-        sendToSheetBtn.style.display = 'none';
+        // Mostrar o botão de envio principal apenas se houver produtos filtrados (aprováveis)
+        if (filteredProducts.length > 0) {
+            sendToSheetBtn.style.display = 'inline-block';
+            sendToSheetBtn.onclick = function () {
+                sendToGoogleSheets(filteredProducts, 'approved');
+            };
+        } else {
+            sendToSheetBtn.style.display = 'none';
+        }
+
         sendRejectedBtn.style.display = 'inline-block';
         if (sendExcludedToSheetBtnLocal) sendExcludedToSheetBtnLocal.style.display = 'inline-block';
         sendRejectedBtn.textContent = '🚫 ENVIAR reprovados para Sheets';
+
         // Envia os produtos excluídos como reprovados e limpa a lista após envio
         sendRejectedBtn.onclick = function () {
             const addExcludedBtnLocal = document.getElementById('addExcludedBtn');
@@ -356,6 +366,21 @@ document.getElementById('extractBtn').addEventListener('click', function () {
                 })
                 .catch(() => { });
         };
+
+        // Envia excluídos como aprovados (Sheet principal)
+        if (sendExcludedToSheetBtnLocal) {
+            sendExcludedToSheetBtnLocal.onclick = function () {
+                sendToGoogleSheets(excludedProducts, 'approved')
+                    .then(() => {
+                        excludedProducts = [];
+                        if (addExcludedBtn) addExcludedBtn.style.display = 'none';
+                        sendExcludedToSheetBtnLocal.style.display = 'none';
+                        excludedWarning.style.display = 'none';
+                    })
+                    .catch(() => {});
+            };
+        }
+
         addExcludedBtn.onclick = function () {
             // Exibe somente os excluídos
             const combinedProducts = excludedProducts;
@@ -370,7 +395,7 @@ document.getElementById('extractBtn').addEventListener('click', function () {
             const newProductsWithQuotes = combinedProducts.map(p => '"' + p.replace(/"/g, '""') + '"');
             const newResultForCopyVertical = newProductsWithQuotes.join('\n');
 
-            // Atualiza botões para enviar os combinados
+            // Atualiza botões para enviar os excluídos
             sendToSheetBtn.onclick = function () {
                 sendToGoogleSheets(combinedProducts, 'approved');
             };
