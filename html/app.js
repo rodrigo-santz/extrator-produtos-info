@@ -204,6 +204,11 @@ document.getElementById('extractBtn').addEventListener('click', function () {
             .replace(/\n{3,}/g, '\n\n') // Remove linhas em branco extras
             .trim();
 
+        // ignore blocks that clearly are not products (no SKU present)
+        if (!/SKU:/m.test(productText)) {
+            continue;
+        }
+
         if (!productText) {
             continue;
         }
