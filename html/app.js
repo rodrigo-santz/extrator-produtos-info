@@ -1,6 +1,10 @@
 // ⚙️ CONFIGURAÇÃO: Altere a URL aqui se necessário
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz4Sj05M50kF8T3FrEfZ6f5XegfTANul3jvUI-n5iYFO1OhWPkzejhZKwM4urZ64n3u/exec';
 
+// Armazenar produtos excluídos
+let excludedProducts = [];
+let currentFilteredProducts = [];
+
 function postToAppsScript(scriptUrl, payload) {
     return new Promise((resolve, reject) => {
         try {
@@ -17,7 +21,7 @@ function postToAppsScript(scriptUrl, payload) {
 
             const form = document.createElement('form');
             form.method = 'POST';
-            
+
             form.action = scriptUrl;
             form.target = iframeId;
             form.style.display = 'none';
@@ -76,6 +80,7 @@ function sendToGoogleSheets(products, destination = 'approved') {
     console.log('Produtos:', products.length);
 
     postToAppsScript(scriptUrl, payload)
+        return postToAppsScript(scriptUrl, payload)
         .then(() => {
             activeButton.textContent = successLabel;
             activeButton.classList.remove(defaultClass);
@@ -237,18 +242,22 @@ document.getElementById('extractBtn').addEventListener('click', function () {
 
     // Filtra produtos com Categoria: Medicamentos ou Categoria: Remédios
     const excludedWarning = document.getElementById('excludedWarning');
+    const addExcludedBtn = document.getElementById('addExcludedBtn');
     const filteredProducts = [];
+    excludedProducts = []; // Limpa excluídos anteriores
     let medicamentosCount = 0;
     let remediosCount = 0;
 
     for (const product of products) {
         const isMedicamentos = /^Categoria:\s*Medicamentos\s*$/m.test(product);
         const isRemedios = /^Categoria:\s*Remédios\s*$/m.test(product);
-        
+
         if (isMedicamentos) {
             medicamentosCount++;
+            excludedProducts.push(product);
         } else if (isRemedios) {
             remediosCount++;
+            excludedProducts.push(product);
         } else {
             filteredProducts.push(product);
         }
@@ -266,21 +275,47 @@ document.getElementById('extractBtn').addEventListener('click', function () {
         }
         excludedWarning.textContent = warningText;
         excludedWarning.style.display = 'inline-block';
+        addExcludedBtn.style.display = 'inline-block';
     } else {
         excludedWarning.style.display = 'none';
+        addExcludedBtn.style.display = 'none';
     }
 
     // Se todos foram excluídos
     if (filteredProducts.length === 0) {
         resultDiv.innerHTML = '<span class="text-warning">Todos os produtos foram excluídos por conterem Categoria: Medicamentos ou Remédios.</span>';
+        const copyVerticalBtn = document.getElementById('copyVerticalBtn');
+        const sendToSheetBtn = document.getElementById('sendToSheetBtn');
+        const sendRejectedBtn = document.getElementById('sendRejectedBtn');
+        const productCount = document.getElementById('productCount');
         copyVerticalBtn.style.display = 'none';
         sendToSheetBtn.style.display = 'none';
-        sendRejectedBtn.style.display = 'none';
+        sendRejectedBtn.style.display = 'inline-block';
         productCount.style.display = 'none';
+        
+        // Botão para enviar excluídos
+        sendRejectedBtn.textContent = '🚫 ENVIAR EXCLUÍDOS para Sheets';
+        const addExcludedBtnLocal = document.getElementById('addExcludedBtn');
+        sendRejectedBtn.onclick = function () {
+            sendToGoogleSheets(excludedProducts, 'rejected')
+                .then(() => {
+                    // Limpa excluídos após envio para evitar reenvio
+                    excludedProducts = [];
+                    if (addExcludedBtnLocal) addExcludedBtnLocal.style.display = 'none';
+                    if (excludedWarning) excludedWarning.style.display = 'none';
+                })
+                .catch(() => {});
+        };
         return;
     }
 
     // Mostra todos os produtos separados
+    currentFilteredProducts = filteredProducts; // Armazena produtos atuais
+    const copyVerticalBtn = document.getElementById('copyVerticalBtn');
+    const sendToSheetBtn = document.getElementById('sendToSheetBtn');
+    const sendRejectedBtn = document.getElementById('sendRejectedBtn');
+    const productCount = document.getElementById('productCount');
+    
     const productsWithQuotes = filteredProducts.map(p => '"' + p.replace(/"/g, '""') + '"');
     const resultForCopyVertical = productsWithQuotes.join('\n');
     const resultForDisplay = filteredProducts.join('\n\n' + '─'.repeat(80) + '\n\n');
@@ -288,23 +323,65 @@ document.getElementById('extractBtn').addEventListener('click', function () {
     resultDiv.textContent = resultForDisplay;
     resultDiv.classList.remove('text-muted');
     copyVerticalBtn.style.display = 'inline-block';
-    
+
     // Se houver produtos excluídos, mostra apenas botão de reprovados
     if (totalExcluded > 0) {
         sendToSheetBtn.style.display = 'none';
         sendRejectedBtn.style.display = 'inline-block';
-        // Envia os produtos excluídos como reprovados
+        sendRejectedBtn.textContent = '🚫 ENVIAR reprovados para Sheets';
+        // Envia os produtos excluídos como reprovados e limpa a lista após envio
         sendRejectedBtn.onclick = function () {
-            const excludedProducts = products.filter(product => {
-                const isMedicamentos = /^Categoria:\s*Medicamentos\s*$/m.test(product);
-                const isRemedios = /^Categoria:\s*Remédios\s*$/m.test(product);
-                return isMedicamentos || isRemedios;
-            });
-            sendToGoogleSheets(excludedProducts, 'rejected');
+            const addExcludedBtnLocal = document.getElementById('addExcludedBtn');
+            sendToGoogleSheets(excludedProducts, 'rejected')
+                .then(() => {
+                    excludedProducts = [];
+                    if (addExcludedBtnLocal) addExcludedBtnLocal.style.display = 'none';
+                    excludedWarning.style.display = 'none';
+                })
+                .catch(() => {});
+        };
+        addExcludedBtn.onclick = function () {
+            // Exibe somente os excluídos
+            const combinedProducts = excludedProducts;
+            resultDiv.textContent = combinedProducts.join('\n\n' + '─'.repeat(80) + '\n\n');
+            sendToSheetBtn.style.display = 'inline-block';
+            sendRejectedBtn.style.display = 'none';
+            addExcludedBtn.style.display = 'none';
+            productCount.textContent = `${combinedProducts.length} produto${combinedProducts.length !== 1 ? 's' : ''}`;
+            
+            const newProductsWithQuotes = combinedProducts.map(p => '"' + p.replace(/"/g, '""') + '"');
+            const newResultForCopyVertical = newProductsWithQuotes.join('\n');
+            
+            // Atualiza botões para enviar os combinados
+            sendToSheetBtn.onclick = function () {
+                sendToGoogleSheets(combinedProducts, 'approved');
+            };
+            sendRejectedBtn.onclick = function () {
+                sendToGoogleSheets(combinedProducts, 'rejected');
+            };
+            
+            // Atualiza cópia
+            copyVerticalBtn.onclick = function () {
+                navigator.clipboard.writeText(newResultForCopyVertical).then(function () {
+                    const originalText = copyVerticalBtn.textContent;
+                    copyVerticalBtn.textContent = '✓ Copiado!';
+                    copyVerticalBtn.classList.remove('btn-light');
+                    copyVerticalBtn.classList.add('btn-success');
+                    setTimeout(function () {
+                        copyVerticalBtn.textContent = originalText;
+                        copyVerticalBtn.classList.remove('btn-success');
+                        copyVerticalBtn.classList.add('btn-light');
+                    }, 2000);
+                }).catch(function (err) {
+                    alert('Erro ao copiar. Tente usar Ctrl+C manualmente.');
+                    console.error('Erro:', err);
+                });
+            };
         };
     } else {
         sendToSheetBtn.style.display = 'inline-block';
         sendRejectedBtn.style.display = 'none';
+        addExcludedBtn.style.display = 'none';
         // Envia produtos filtrados como aprovados
         sendToSheetBtn.onclick = function () {
             sendToGoogleSheets(filteredProducts, 'approved');
@@ -314,8 +391,7 @@ document.getElementById('extractBtn').addEventListener('click', function () {
             sendToGoogleSheets(filteredProducts, 'rejected');
         };
     }
-    
-    sendRejectedBtn.style.display = 'inline-block';
+
     productCount.style.display = 'inline-block';
     productCount.textContent = `${filteredProducts.length} produto${filteredProducts.length !== 1 ? 's' : ''}`;
 
@@ -335,5 +411,5 @@ document.getElementById('extractBtn').addEventListener('click', function () {
             alert('Erro ao copiar. Tente usar Ctrl+C manualmente.');
             console.error('Erro:', err);
         });
-    };;
+    };
 });
