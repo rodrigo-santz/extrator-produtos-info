@@ -235,10 +235,55 @@ document.getElementById('extractBtn').addEventListener('click', function () {
         return;
     }
 
+    // Filtra produtos com Categoria: Medicamentos ou Categoria: Remédios
+    const excludedWarning = document.getElementById('excludedWarning');
+    const filteredProducts = [];
+    let medicamentosCount = 0;
+    let remediosCount = 0;
+
+    for (const product of products) {
+        const isMedicamentos = /^Categoria:\s*Medicamentos\s*$/m.test(product);
+        const isRemedios = /^Categoria:\s*Remédios\s*$/m.test(product);
+        
+        if (isMedicamentos) {
+            medicamentosCount++;
+        } else if (isRemedios) {
+            remediosCount++;
+        } else {
+            filteredProducts.push(product);
+        }
+    }
+
+    // Mostra aviso se houver produtos excluídos
+    const totalExcluded = medicamentosCount + remediosCount;
+    if (totalExcluded > 0) {
+        let warningText = `Um total de ${products.length} produtos foram encontrados.`;
+        if (medicamentosCount > 0) {
+            warningText += ` Medicamentos: ${medicamentosCount}`;
+        }
+        if (remediosCount > 0) {
+            warningText += `${medicamentosCount > 0 ? ',' : ''} Remédios: ${remediosCount}`;
+        }
+        excludedWarning.textContent = warningText;
+        excludedWarning.style.display = 'inline-block';
+    } else {
+        excludedWarning.style.display = 'none';
+    }
+
+    // Se todos foram excluídos
+    if (filteredProducts.length === 0) {
+        resultDiv.innerHTML = '<span class="text-warning">Todos os produtos foram excluídos por conterem Categoria: Medicamentos ou Remédios.</span>';
+        copyVerticalBtn.style.display = 'none';
+        sendToSheetBtn.style.display = 'none';
+        sendRejectedBtn.style.display = 'none';
+        productCount.style.display = 'none';
+        return;
+    }
+
     // Mostra todos os produtos separados
-    const productsWithQuotes = products.map(p => '"' + p.replace(/"/g, '""') + '"');
+    const productsWithQuotes = filteredProducts.map(p => '"' + p.replace(/"/g, '""') + '"');
     const resultForCopyVertical = productsWithQuotes.join('\n');
-    const resultForDisplay = products.join('\n\n' + '─'.repeat(80) + '\n\n');
+    const resultForDisplay = filteredProducts.join('\n\n' + '─'.repeat(80) + '\n\n');
 
     resultDiv.textContent = resultForDisplay;
     resultDiv.classList.remove('text-muted');
@@ -246,7 +291,7 @@ document.getElementById('extractBtn').addEventListener('click', function () {
     sendToSheetBtn.style.display = 'inline-block';
     sendRejectedBtn.style.display = 'inline-block';
     productCount.style.display = 'inline-block';
-    productCount.textContent = `${products.length} produto${products.length !== 1 ? 's' : ''}`;
+    productCount.textContent = `${filteredProducts.length} produto${filteredProducts.length !== 1 ? 's' : ''}`;
 
     // Copia vertical (em linhas)
     copyVerticalBtn.onclick = function () {
@@ -268,11 +313,11 @@ document.getElementById('extractBtn').addEventListener('click', function () {
 
     // Enviar para Google Sheets
     sendToSheetBtn.onclick = function () {
-        sendToGoogleSheets(products, 'approved');
+        sendToGoogleSheets(filteredProducts, 'approved');
     };
 
     // Enviar reprovados para Google Sheets (coluna A)
     sendRejectedBtn.onclick = function () {
-        sendToGoogleSheets(products, 'rejected');
+        sendToGoogleSheets(filteredProducts, 'rejected');
     };
 });
