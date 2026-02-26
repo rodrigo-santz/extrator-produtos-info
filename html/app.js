@@ -169,8 +169,8 @@ document.getElementById('extractBtn').addEventListener('click', function () {
     const markerByCarousel = /^img-carousel\s*$/gm;
     let rawProductBlocks = splitByMarkers(inputText, markerByCarousel);
 
-    // Fallback: tenta com paginação (1/1, 1/2, etc) se houver "Pendente"
-    if (rawProductBlocks.length === 0 && inputText.includes('Pendente')) {
+    // Fallback: tenta com paginação (1/1, 1/2, etc)
+    if (rawProductBlocks.length === 0) {
         const markerByPagination = /^\d+\/\d+\s*$/gm;
         rawProductBlocks = splitByMarkers(inputText, markerByPagination);
     }
@@ -179,6 +179,12 @@ document.getElementById('extractBtn').addEventListener('click', function () {
     if (rawProductBlocks.length === 0) {
         const markerByPagination = /^\d+\/\d+\s*$/gm;
         rawProductBlocks = splitByMarkers(inputText, markerByPagination);
+    }
+
+    // Caso ainda não tenha encontrado e exista "Pendente", use essa linha como separador
+    if (rawProductBlocks.length === 0 && inputText.includes('Pendente')) {
+        const markerByPending = /^Pendente\s*$/gm;
+        rawProductBlocks = splitByMarkers(inputText, markerByPending);
     }
 
     if (rawProductBlocks.length === 0) {
