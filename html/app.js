@@ -165,27 +165,15 @@ document.getElementById('extractBtn').addEventListener('click', function () {
         return blocks;
     };
 
-    // Delimitador principal: cada card começa em "img-carousel"
-    const markerByCarousel = /^img-carousel\s*$/gm;
-    let rawProductBlocks = splitByMarkers(inputText, markerByCarousel);
+    // Split text into product blocks using multiple possible markers.
+    // Always consider "img-carousel", pagination markers like "1/1", and the
+    // word "Pendente" as boundaries. We use a lookahead regex so that the
+    // marker itself stays in the block and can be removed later during cleaning.
+    const splitRegex = /(?=^img-carousel\s*$|^\d+\/\d+\s*$|^Previous slide\s*$|^Next slide\s*$|^Pendente\s*$)/gim;
+    let rawProductBlocks = inputText.split(splitRegex);
 
-    // Fallback: tenta com paginação (1/1, 1/2, etc)
-    if (rawProductBlocks.length === 0) {
-        const markerByPagination = /^\d+\/\d+\s*$/gm;
-        rawProductBlocks = splitByMarkers(inputText, markerByPagination);
-    }
-
-    // Fallback para textos antigos, caso não haja nenhum marcador anterior
-    if (rawProductBlocks.length === 0) {
-        const markerByPagination = /^\d+\/\d+\s*$/gm;
-        rawProductBlocks = splitByMarkers(inputText, markerByPagination);
-    }
-
-    // Caso ainda não tenha encontrado e exista "Pendente", use essa linha como separador
-    if (rawProductBlocks.length === 0 && inputText.includes('Pendente')) {
-        const markerByPending = /^Pendente\s*$/gm;
-        rawProductBlocks = splitByMarkers(inputText, markerByPending);
-    }
+    // remove any empty strings which may appear from leading/trailing splits
+    rawProductBlocks = rawProductBlocks.map(b => b.trim()).filter(b => b.length > 0);
 
     if (rawProductBlocks.length === 0) {
         resultDiv.innerHTML = '<span class="text-danger">Não foi possível capturar nenhum produto. Tente copiar novamente incluindo os blocos com "img-carousel".</span>';
