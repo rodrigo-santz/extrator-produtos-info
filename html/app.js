@@ -295,7 +295,6 @@ document.getElementById('extractBtn').addEventListener('click', function () {
         // Botões para enviar excluídos
         sendRejectedBtn.textContent = '🚫 ENVIAR EXCLUÍDOS (reprovados) para Sheets';
         const addExcludedBtnLocal = document.getElementById('addExcludedBtn');
-        const sendExcludedToSheetBtnLocal = document.getElementById('sendExcludedToSheetBtn');
 
         // Envia como reprovados
         sendRejectedBtn.onclick = function () {
@@ -303,26 +302,10 @@ document.getElementById('extractBtn').addEventListener('click', function () {
                 .then(() => {
                     excludedProducts = [];
                     if (addExcludedBtnLocal) addExcludedBtnLocal.style.display = 'none';
-                    if (sendExcludedToSheetBtnLocal) sendExcludedToSheetBtnLocal.style.display = 'none';
                     if (excludedWarning) excludedWarning.style.display = 'none';
                 })
                 .catch(() => { });
         };
-
-        // Envia excluídos como aprovados (Sheets coluna principal)
-        if (sendExcludedToSheetBtnLocal) {
-            sendExcludedToSheetBtnLocal.style.display = 'inline-block';
-            sendExcludedToSheetBtnLocal.onclick = function () {
-                sendToGoogleSheets(excludedProducts, 'approved')
-                    .then(() => {
-                        excludedProducts = [];
-                        if (addExcludedBtnLocal) addExcludedBtnLocal.style.display = 'none';
-                        sendExcludedToSheetBtnLocal.style.display = 'none';
-                        if (excludedWarning) excludedWarning.style.display = 'none';
-                    })
-                    .catch(() => {});
-            };
-        }
         return;
     }
 
@@ -339,7 +322,6 @@ document.getElementById('extractBtn').addEventListener('click', function () {
 
     // Se houver produtos excluídos, mostra botões para reprovar/enviar excluídos
     if (totalExcluded > 0) {
-        const sendExcludedToSheetBtnLocal = document.getElementById('sendExcludedToSheetBtn');
         // Mostrar o botão de envio principal apenas se houver produtos filtrados (aprováveis)
         if (filteredProducts.length > 0) {
             sendToSheetBtn.style.display = 'inline-block';
@@ -350,8 +332,8 @@ document.getElementById('extractBtn').addEventListener('click', function () {
             sendToSheetBtn.style.display = 'none';
         }
 
+        // Mostrar botão de reprovar (excluídos/reprovados)
         sendRejectedBtn.style.display = 'inline-block';
-        if (sendExcludedToSheetBtnLocal) sendExcludedToSheetBtnLocal.style.display = 'inline-block';
         sendRejectedBtn.textContent = '🚫 ENVIAR reprovados para Sheets';
 
         // Envia os produtos excluídos como reprovados e limpa a lista após envio
@@ -361,46 +343,31 @@ document.getElementById('extractBtn').addEventListener('click', function () {
                 .then(() => {
                     excludedProducts = [];
                     if (addExcludedBtnLocal) addExcludedBtnLocal.style.display = 'none';
-                    if (sendExcludedToSheetBtnLocal) sendExcludedToSheetBtnLocal.style.display = 'none';
                     excludedWarning.style.display = 'none';
                 })
                 .catch(() => { });
         };
 
-        // Envia excluídos como aprovados (Sheet principal)
-        if (sendExcludedToSheetBtnLocal) {
-            sendExcludedToSheetBtnLocal.onclick = function () {
-                sendToGoogleSheets(excludedProducts, 'approved')
+        addExcludedBtn.onclick = function () {
+            // Exibe somente os excluídos e permite enviar apenas como reprovados
+            const onlyExcluded = excludedProducts;
+            resultDiv.textContent = onlyExcluded.join('\n\n' + '─'.repeat(80) + '\n\n');
+            sendToSheetBtn.style.display = 'none';
+            sendRejectedBtn.style.display = 'inline-block';
+            addExcludedBtn.style.display = 'none';
+            productCount.textContent = `${onlyExcluded.length} produto${onlyExcluded.length !== 1 ? 's' : ''}`;
+
+            const newProductsWithQuotes = onlyExcluded.map(p => '"' + p.replace(/"/g, '""') + '"');
+            const newResultForCopyVertical = newProductsWithQuotes.join('\n');
+
+            // Envia apenas os excluídos como reprovados
+            sendRejectedBtn.onclick = function () {
+                sendToGoogleSheets(onlyExcluded, 'rejected')
                     .then(() => {
                         excludedProducts = [];
-                        if (addExcludedBtn) addExcludedBtn.style.display = 'none';
-                        sendExcludedToSheetBtnLocal.style.display = 'none';
                         excludedWarning.style.display = 'none';
                     })
                     .catch(() => {});
-            };
-        }
-
-        addExcludedBtn.onclick = function () {
-            // Exibe somente os excluídos
-            const combinedProducts = excludedProducts;
-            resultDiv.textContent = combinedProducts.join('\n\n' + '─'.repeat(80) + '\n\n');
-            sendToSheetBtn.style.display = 'inline-block';
-            sendRejectedBtn.style.display = 'none';
-            const sendExcludedToSheetBtnLocal2 = document.getElementById('sendExcludedToSheetBtn');
-            if (sendExcludedToSheetBtnLocal2) sendExcludedToSheetBtnLocal2.style.display = 'none';
-            addExcludedBtn.style.display = 'none';
-            productCount.textContent = `${combinedProducts.length} produto${combinedProducts.length !== 1 ? 's' : ''}`;
-
-            const newProductsWithQuotes = combinedProducts.map(p => '"' + p.replace(/"/g, '""') + '"');
-            const newResultForCopyVertical = newProductsWithQuotes.join('\n');
-
-            // Atualiza botões para enviar os excluídos
-            sendToSheetBtn.onclick = function () {
-                sendToGoogleSheets(combinedProducts, 'approved');
-            };
-            sendRejectedBtn.onclick = function () {
-                sendToGoogleSheets(combinedProducts, 'rejected');
             };
 
             // Atualiza cópia
