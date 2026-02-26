@@ -165,6 +165,12 @@ document.getElementById('extractBtn').addEventListener('click', function () {
     const markerByCarousel = /^img-carousel\s*$/gm;
     let rawProductBlocks = splitByMarkers(inputText, markerByCarousel);
 
+    // Fallback para "Previous slide"
+    if (rawProductBlocks.length === 0) {
+        const markerByPreviousSlide = /^Previous slide\s*$/gm;
+        rawProductBlocks = splitByMarkers(inputText, markerByPreviousSlide);
+    }
+
     // Fallback para textos antigos, caso não haja o marcador do carousel
     if (rawProductBlocks.length === 0) {
         const markerByPagination = /^\d+\/\d+\s*$/gm;
