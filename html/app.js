@@ -165,13 +165,13 @@ document.getElementById('extractBtn').addEventListener('click', function () {
     const markerByCarousel = /^img-carousel\s*$/gm;
     let rawProductBlocks = splitByMarkers(inputText, markerByCarousel);
 
-    // Fallback para "Previous slide"
-    if (rawProductBlocks.length === 0) {
-        const markerByPreviousSlide = /^Previous slide\s*$/gm;
-        rawProductBlocks = splitByMarkers(inputText, markerByPreviousSlide);
+    // Fallback: tenta com paginação (1/1, 1/2, etc) se houver "Pendente"
+    if (rawProductBlocks.length === 0 && inputText.includes('Pendente')) {
+        const markerByPagination = /^\d+\/\d+\s*$/gm;
+        rawProductBlocks = splitByMarkers(inputText, markerByPagination);
     }
 
-    // Fallback para textos antigos, caso não haja o marcador do carousel
+    // Fallback para textos antigos, caso não haja nenhum marcador anterior
     if (rawProductBlocks.length === 0) {
         const markerByPagination = /^\d+\/\d+\s*$/gm;
         rawProductBlocks = splitByMarkers(inputText, markerByPagination);
