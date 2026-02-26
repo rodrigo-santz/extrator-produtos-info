@@ -292,19 +292,37 @@ document.getElementById('extractBtn').addEventListener('click', function () {
         sendRejectedBtn.style.display = 'inline-block';
         productCount.style.display = 'none';
 
-        // Botão para enviar excluídos
-        sendRejectedBtn.textContent = '🚫 ENVIAR EXCLUÍDOS para Sheets';
+        // Botões para enviar excluídos
+        sendRejectedBtn.textContent = '🚫 ENVIAR EXCLUÍDOS (reprovados) para Sheets';
         const addExcludedBtnLocal = document.getElementById('addExcludedBtn');
+        const sendExcludedToSheetBtnLocal = document.getElementById('sendExcludedToSheetBtn');
+
+        // Envia como reprovados
         sendRejectedBtn.onclick = function () {
             sendToGoogleSheets(excludedProducts, 'rejected')
                 .then(() => {
-                    // Limpa excluídos após envio para evitar reenvio
                     excludedProducts = [];
                     if (addExcludedBtnLocal) addExcludedBtnLocal.style.display = 'none';
+                    if (sendExcludedToSheetBtnLocal) sendExcludedToSheetBtnLocal.style.display = 'none';
                     if (excludedWarning) excludedWarning.style.display = 'none';
                 })
                 .catch(() => { });
         };
+
+        // Envia excluídos como aprovados (Sheets coluna principal)
+        if (sendExcludedToSheetBtnLocal) {
+            sendExcludedToSheetBtnLocal.style.display = 'inline-block';
+            sendExcludedToSheetBtnLocal.onclick = function () {
+                sendToGoogleSheets(excludedProducts, 'approved')
+                    .then(() => {
+                        excludedProducts = [];
+                        if (addExcludedBtnLocal) addExcludedBtnLocal.style.display = 'none';
+                        sendExcludedToSheetBtnLocal.style.display = 'none';
+                        if (excludedWarning) excludedWarning.style.display = 'none';
+                    })
+                    .catch(() => {});
+            };
+        }
         return;
     }
 
@@ -321,8 +339,10 @@ document.getElementById('extractBtn').addEventListener('click', function () {
 
     // Se houver produtos excluídos, mostra apenas botão de reprovados
     if (totalExcluded > 0) {
+        const sendExcludedToSheetBtnLocal = document.getElementById('sendExcludedToSheetBtn');
         sendToSheetBtn.style.display = 'none';
         sendRejectedBtn.style.display = 'inline-block';
+        if (sendExcludedToSheetBtnLocal) sendExcludedToSheetBtnLocal.style.display = 'inline-block';
         sendRejectedBtn.textContent = '🚫 ENVIAR reprovados para Sheets';
         // Envia os produtos excluídos como reprovados e limpa a lista após envio
         sendRejectedBtn.onclick = function () {
@@ -331,6 +351,7 @@ document.getElementById('extractBtn').addEventListener('click', function () {
                 .then(() => {
                     excludedProducts = [];
                     if (addExcludedBtnLocal) addExcludedBtnLocal.style.display = 'none';
+                    if (sendExcludedToSheetBtnLocal) sendExcludedToSheetBtnLocal.style.display = 'none';
                     excludedWarning.style.display = 'none';
                 })
                 .catch(() => { });
@@ -341,6 +362,8 @@ document.getElementById('extractBtn').addEventListener('click', function () {
             resultDiv.textContent = combinedProducts.join('\n\n' + '─'.repeat(80) + '\n\n');
             sendToSheetBtn.style.display = 'inline-block';
             sendRejectedBtn.style.display = 'none';
+            const sendExcludedToSheetBtnLocal2 = document.getElementById('sendExcludedToSheetBtn');
+            if (sendExcludedToSheetBtnLocal2) sendExcludedToSheetBtnLocal2.style.display = 'none';
             addExcludedBtn.style.display = 'none';
             productCount.textContent = `${combinedProducts.length} produto${combinedProducts.length !== 1 ? 's' : ''}`;
 
