@@ -79,8 +79,7 @@ function sendToGoogleSheets(products, destination = 'approved') {
     console.log('Enviando para:', scriptUrl);
     console.log('Produtos:', products.length);
 
-    postToAppsScript(scriptUrl, payload)
-        return postToAppsScript(scriptUrl, payload)
+    return postToAppsScript(scriptUrl, payload)
         .then(() => {
             activeButton.textContent = successLabel;
             activeButton.classList.remove(defaultClass);
@@ -292,7 +291,7 @@ document.getElementById('extractBtn').addEventListener('click', function () {
         sendToSheetBtn.style.display = 'none';
         sendRejectedBtn.style.display = 'inline-block';
         productCount.style.display = 'none';
-        
+
         // Botão para enviar excluídos
         sendRejectedBtn.textContent = '🚫 ENVIAR EXCLUÍDOS para Sheets';
         const addExcludedBtnLocal = document.getElementById('addExcludedBtn');
@@ -304,18 +303,14 @@ document.getElementById('extractBtn').addEventListener('click', function () {
                     if (addExcludedBtnLocal) addExcludedBtnLocal.style.display = 'none';
                     if (excludedWarning) excludedWarning.style.display = 'none';
                 })
-                .catch(() => {});
+                .catch(() => { });
         };
         return;
     }
 
     // Mostra todos os produtos separados
     currentFilteredProducts = filteredProducts; // Armazena produtos atuais
-    const copyVerticalBtn = document.getElementById('copyVerticalBtn');
-    const sendToSheetBtn = document.getElementById('sendToSheetBtn');
-    const sendRejectedBtn = document.getElementById('sendRejectedBtn');
-    const productCount = document.getElementById('productCount');
-    
+
     const productsWithQuotes = filteredProducts.map(p => '"' + p.replace(/"/g, '""') + '"');
     const resultForCopyVertical = productsWithQuotes.join('\n');
     const resultForDisplay = filteredProducts.join('\n\n' + '─'.repeat(80) + '\n\n');
@@ -338,7 +333,7 @@ document.getElementById('extractBtn').addEventListener('click', function () {
                     if (addExcludedBtnLocal) addExcludedBtnLocal.style.display = 'none';
                     excludedWarning.style.display = 'none';
                 })
-                .catch(() => {});
+                .catch(() => { });
         };
         addExcludedBtn.onclick = function () {
             // Exibe somente os excluídos
@@ -348,10 +343,10 @@ document.getElementById('extractBtn').addEventListener('click', function () {
             sendRejectedBtn.style.display = 'none';
             addExcludedBtn.style.display = 'none';
             productCount.textContent = `${combinedProducts.length} produto${combinedProducts.length !== 1 ? 's' : ''}`;
-            
+
             const newProductsWithQuotes = combinedProducts.map(p => '"' + p.replace(/"/g, '""') + '"');
             const newResultForCopyVertical = newProductsWithQuotes.join('\n');
-            
+
             // Atualiza botões para enviar os combinados
             sendToSheetBtn.onclick = function () {
                 sendToGoogleSheets(combinedProducts, 'approved');
@@ -359,7 +354,7 @@ document.getElementById('extractBtn').addEventListener('click', function () {
             sendRejectedBtn.onclick = function () {
                 sendToGoogleSheets(combinedProducts, 'rejected');
             };
-            
+
             // Atualiza cópia
             copyVerticalBtn.onclick = function () {
                 navigator.clipboard.writeText(newResultForCopyVertical).then(function () {
