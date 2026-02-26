@@ -288,7 +288,33 @@ document.getElementById('extractBtn').addEventListener('click', function () {
     resultDiv.textContent = resultForDisplay;
     resultDiv.classList.remove('text-muted');
     copyVerticalBtn.style.display = 'inline-block';
-    sendToSheetBtn.style.display = 'inline-block';
+    
+    // Se houver produtos excluídos, mostra apenas botão de reprovados
+    if (totalExcluded > 0) {
+        sendToSheetBtn.style.display = 'none';
+        sendRejectedBtn.style.display = 'inline-block';
+        // Envia os produtos excluídos como reprovados
+        sendRejectedBtn.onclick = function () {
+            const excludedProducts = products.filter(product => {
+                const isMedicamentos = /^Categoria:\s*Medicamentos\s*$/m.test(product);
+                const isRemedios = /^Categoria:\s*Remédios\s*$/m.test(product);
+                return isMedicamentos || isRemedios;
+            });
+            sendToGoogleSheets(excludedProducts, 'rejected');
+        };
+    } else {
+        sendToSheetBtn.style.display = 'inline-block';
+        sendRejectedBtn.style.display = 'none';
+        // Envia produtos filtrados como aprovados
+        sendToSheetBtn.onclick = function () {
+            sendToGoogleSheets(filteredProducts, 'approved');
+        };
+        // Envia produtos filtrados como reprovados
+        sendRejectedBtn.onclick = function () {
+            sendToGoogleSheets(filteredProducts, 'rejected');
+        };
+    }
+    
     sendRejectedBtn.style.display = 'inline-block';
     productCount.style.display = 'inline-block';
     productCount.textContent = `${filteredProducts.length} produto${filteredProducts.length !== 1 ? 's' : ''}`;
@@ -309,15 +335,5 @@ document.getElementById('extractBtn').addEventListener('click', function () {
             alert('Erro ao copiar. Tente usar Ctrl+C manualmente.');
             console.error('Erro:', err);
         });
-    };
-
-    // Enviar para Google Sheets
-    sendToSheetBtn.onclick = function () {
-        sendToGoogleSheets(filteredProducts, 'approved');
-    };
-
-    // Enviar reprovados para Google Sheets (coluna A)
-    sendRejectedBtn.onclick = function () {
-        sendToGoogleSheets(filteredProducts, 'rejected');
-    };
+    };;
 });
