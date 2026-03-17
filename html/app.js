@@ -238,17 +238,19 @@ document.getElementById('extractBtn').addEventListener('click', function () {
         return;
     }
 
-    // Filtra produtos com Categoria: Medicamentos ou Categoria: Remédios
+    // Filtra produtos com Categoria: Medicamentos, Categoria: Remédios ou Categoria: Categoria Inativada
     const excludedWarning = document.getElementById('excludedWarning');
     const addExcludedBtn = document.getElementById('addExcludedBtn');
     const filteredProducts = [];
     excludedProducts = []; // Limpa excluídos anteriores
     let medicamentosCount = 0;
     let remediosCount = 0;
+    let inativadaCount = 0;
 
     for (const product of products) {
         const isMedicamentos = /^Categoria:\s*Medicamentos\s*$/m.test(product);
         const isRemedios = /^Categoria:\s*Remédios\s*$/m.test(product);
+        const isInativada = /^Categoria:\s*Categoria Inativada\s*$/m.test(product);
 
         if (isMedicamentos) {
             medicamentosCount++;
@@ -256,13 +258,16 @@ document.getElementById('extractBtn').addEventListener('click', function () {
         } else if (isRemedios) {
             remediosCount++;
             excludedProducts.push(product);
+        } else if (isInativada) {
+            inativadaCount++;
+            excludedProducts.push(product);
         } else {
             filteredProducts.push(product);
         }
     }
 
     // Mostra aviso se houver produtos excluídos
-    const totalExcluded = medicamentosCount + remediosCount;
+    const totalExcluded = medicamentosCount + remediosCount + inativadaCount;
     if (totalExcluded > 0) {
         let warningText = `Um total de ${products.length} produtos foram encontrados.`;
         if (medicamentosCount > 0) {
@@ -270,6 +275,10 @@ document.getElementById('extractBtn').addEventListener('click', function () {
         }
         if (remediosCount > 0) {
             warningText += `${medicamentosCount > 0 ? ',' : ''} Remédios: ${remediosCount}`;
+        }
+        if (inativadaCount > 0) {
+            const prefix = (medicamentosCount > 0 || remediosCount > 0) ? ',' : '';
+            warningText += `${prefix} Categoria Inativada: ${inativadaCount}`;
         }
         excludedWarning.textContent = warningText;
         excludedWarning.style.display = 'inline-block';
@@ -281,7 +290,7 @@ document.getElementById('extractBtn').addEventListener('click', function () {
 
     // Se todos foram excluídos
     if (filteredProducts.length === 0) {
-        resultDiv.innerHTML = '<span class="text-warning">Todos os produtos foram excluídos por conterem Categoria: Medicamentos ou Remédios.</span>';
+        resultDiv.innerHTML = '<span class="text-warning">Todos os produtos foram excluídos por conterem Categoria: Medicamentos, Remédios ou Categoria Inativada.</span>';
         const copyVerticalBtn = document.getElementById('copyVerticalBtn');
         const sendToSheetBtn = document.getElementById('sendToSheetBtn');
         const sendRejectedBtn = document.getElementById('sendRejectedBtn');
